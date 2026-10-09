@@ -3,7 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="favicon.png">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="favicon.png">
 <title>Aurelian Estates | Luxury Real Estate</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -462,104 +465,159 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(dismissSplash, 1600);
 });
 
-/* ===== FRAME SEQUENCE SCROLL ENGINE ===== */
+/* ===== ADVANCED PROGRESSIVE FRAME SEQUENCE ENGINE ===== */
 (function(){
-  const TOTAL=192, canvas=document.getElementById('frame-canvas'), ctx=canvas.getContext('2d');
-  const preBar=document.getElementById('pre-bar'), prePct=document.getElementById('pre-pct'), preEl=document.getElementById('pre');
-  const images=new Array(TOTAL);
-  let loaded=0, current=0, target=0, ready=false, lastDrawn=-1;
+  const TOTAL = 192;
+  const canvas = document.getElementById('frame-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const preEl = document.getElementById('pre');
+  const images = new Array(TOTAL);
+  let current = 0, target = 0, ready = false, lastDrawnImage = null;
 
-  let cachedCw=0, cachedCh=0, cachedDw=0, cachedDh=0;
+  let cachedCw = 0, cachedCh = 0, cachedDw = 0, cachedDh = 0;
   function resize(){
-    const dpr=Math.min(devicePixelRatio||1,2);
-    cachedCw=innerWidth; cachedCh=innerHeight;
-    canvas.width=cachedCw*dpr; canvas.height=cachedCh*dpr;
-    canvas.style.width=cachedCw+'px'; canvas.style.height=cachedCh+'px';
-    ctx.setTransform(dpr,0,0,dpr,0,0); lastDrawn=-1;
-    const iw=1920, ih=1080;
-    const s=Math.max(cachedCw/iw,cachedCh/ih);
-    cachedDw=iw*s; cachedDh=ih*s;
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    cachedCw = innerWidth;
+    cachedCh = innerHeight;
+    canvas.width = cachedCw * dpr;
+    canvas.height = cachedCh * dpr;
+    canvas.style.width = cachedCw + 'px';
+    canvas.style.height = cachedCh + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const iw = 1920, ih = 1080;
+    const s = Math.max(cachedCw / iw, cachedCh / ih);
+    cachedDw = iw * s;
+    cachedDh = ih * s;
+    lastDrawnImage = null;
     draw(Math.round(current));
   }
 
-  function draw(idx){
-    idx=Math.max(0,Math.min(TOTAL-1,idx));
-    if(idx===lastDrawn) return;
-    let img=images[idx];
-    if(!img||!img.complete){
-      for(let offset=1; offset<TOTAL; offset++){
-        if(idx-offset>=0 && images[idx-offset] && images[idx-offset].complete){
-          img=images[idx-offset]; break;
-        }
-        if(idx+offset<TOTAL && images[idx+offset] && images[idx+offset].complete){
-          img=images[idx+offset]; break;
-        }
-      }
+  function pad(n){ return String(n).padStart(6, '0'); }
+
+  function getNearestLoaded(idx){
+    if(images[idx] && images[idx].complete) return images[idx];
+    for(let offset = 1; offset < TOTAL; offset++){
+      const left = idx - offset;
+      if(left >= 0 && images[left] && images[left].complete) return images[left];
+      const right = idx + offset;
+      if(right < TOTAL && images[right] && images[right].complete) return images[right];
     }
-    if(!img||!img.complete) return;
-    ctx.clearRect(0,0,cachedCw,cachedCh);
-    ctx.drawImage(img,(cachedCw-cachedDw)/2,(cachedCh-cachedDh)/2,cachedDw,cachedDh);
-    lastDrawn=idx;
+    return null;
+  }
+
+  function draw(idx){
+    idx = Math.max(0, Math.min(TOTAL - 1, idx));
+    const img = getNearestLoaded(idx);
+    if(!img || !img.complete) return;
+    if(img === lastDrawnImage) return;
+
+    ctx.clearRect(0, 0, cachedCw, cachedCh);
+    ctx.drawImage(img, (cachedCw - cachedDw) / 2, (cachedCh - cachedDh) / 2, cachedDw, cachedDh);
+    lastDrawnImage = img;
   }
 
   function animate(){
-    if(!ready) return;
-    const diff=target-current;
-    if(Math.abs(diff)>0.01) {
-      current+=diff*0.1;
+    const diff = target - current;
+    if(Math.abs(diff) > 0.01) {
+      current += diff * 0.12;
       draw(Math.round(current));
     } else if(current !== target) {
-      current=target;
+      current = target;
       draw(Math.round(current));
     }
     requestAnimationFrame(animate);
   }
 
   function onScroll(){
-    if(!ready) return;
-    const p=Math.max(0,Math.min(1,scrollY/(document.documentElement.scrollHeight-innerHeight)));
-    target=Math.round(p*(TOTAL-1));
+    const maxScroll = document.documentElement.scrollHeight - innerHeight;
+    const p = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
+    target = Math.round(p * (TOTAL - 1));
+    // Prioritize loading frames around current scroll target
+    requestFrame(target);
+    for(let o = 1; o <= 3; o++){
+      if(target - o >= 0) requestFrame(target - o);
+      if(target + o < TOTAL) requestFrame(target + o);
+    }
   }
 
-  function pad(n){return String(n).padStart(6,'0')}
+  const requested = new Set();
+  function requestFrame(i, onDone){
+    if(i < 0 || i >= TOTAL || requested.has(i)) return;
+    requested.add(i);
+    const img = new Image();
+    img.onload = function(){
+      images[i] = img;
+      // If we are currently near this frame, re-render
+      if(!lastDrawnImage || Math.abs(i - current) <= 3){
+        lastDrawnImage = null;
+        draw(Math.round(current));
+      }
+      if(onDone) onDone();
+    };
+    img.onerror = function(){
+      if(onDone) onDone();
+    };
+    img.src = 'frame/frame_' + pad(i + 1) + '.png';
+  }
 
-  function startExperience(){
+  function startSite(){
     if(ready) return;
-    ready=true;
+    ready = true;
     if(preEl) preEl.classList.add('go');
     document.body.classList.add('ready');
+    resize();
     draw(0);
-    onScroll();
     animate();
   }
 
-  // Safety fallback: Never trap the user in a loading screen!
-  setTimeout(startExperience, 1000);
+  // Phase 1: Load Frame 1 FIRST and paint immediately
+  requestFrame(0, function(){
+    startSite();
+    // Phase 2: Staged keyframe loading across entire scroll range (every 6th frame)
+    loadKeyframePass(6, function(){
+      // Phase 3: Fill every 2nd frame
+      loadKeyframePass(2, function(){
+        // Phase 4: Fill all remaining frames
+        loadKeyframePass(1);
+      });
+    });
+  });
 
-  function load(){
-    const C=12; let next=0;
-    function go(){
-      if(next>=TOTAL) return;
-      const i=next++;
-      const img=new Image();
-      img.onload=img.onerror=function(){
-        images[i]=img; loaded++;
-        const pct=Math.round(loaded/TOTAL*100);
-        if(preBar) preBar.style.width=pct+'%';
-        if(prePct) prePct.textContent=pct+'% Loaded';
-        if(i===0 || loaded>=1){
-          startExperience();
-        }
-        go();
-      };
-      img.src='frame/frame_'+pad(i+1)+'.png';
+  // Fallback: If network is slow, reveal UI within 800ms
+  setTimeout(startSite, 800);
+
+  function loadKeyframePass(step, callback){
+    const queue = [];
+    for(let i = 0; i < TOTAL; i += step){
+      if(!requested.has(i)) queue.push(i);
     }
-    for(let c=0;c<C;c++) go();
+    if(!queue.length){
+      if(callback) callback();
+      return;
+    }
+    let concurrent = 0;
+    const maxConcurrent = 4; // Gentle concurrency to avoid choking network
+    function next(){
+      if(!queue.length && concurrent === 0){
+        if(callback) callback();
+        return;
+      }
+      while(concurrent < maxConcurrent && queue.length){
+        const idx = queue.shift();
+        concurrent++;
+        requestFrame(idx, function(){
+          concurrent--;
+          next();
+        });
+      }
+    }
+    next();
   }
 
-  addEventListener('resize',resize);
-  addEventListener('scroll',onScroll,{passive:true});
-  resize(); load();
+  addEventListener('resize', resize);
+  addEventListener('scroll', onScroll, { passive: true });
+  resize();
 })();
 
 
