@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>Our Story | Aurelian Estates</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Pinyon+Script&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080a; --ink:#ffffff; --mut:#dcd5c9; --gold:#c9a96e; --gold-light:#e2cc9c;
+  --line:rgba(201,169,110,.3); --hd:'Cormorant Garamond',serif; --bd:'Manrope',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.8 var(--bd);overflow-x:hidden;}
+a{color:inherit;text-decoration:none}
+h1,h2,h3{font-family:var(--hd);font-weight:700;margin:0;line-height:1.1;}
+.wrap{max-width:1100px;margin:auto;padding:0 28px}
+.btn{display:inline-block;padding:12px 26px;border-radius:6px;font-weight:600;font-size:14px;background:var(--gold);color:#0a0c10;cursor:pointer;border:1px solid var(--gold);transition:all .4s;}
+.btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(201,169,110,.3);}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:50;padding:20px 0;background:rgba(8,8,10,0.9);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;max-width:1300px;}
+.logo{font:700 28px var(--hd);color:var(--gold);}
+.links{display:flex;gap:30px;align-items:center;}
+.links a:not(.btn){font-weight:500;color:var(--ink);transition:color .3s;}
+.links a:not(.btn):hover{color:var(--gold);}
+
+/* HERO */
+header.hero{padding:200px 0 100px;text-align:center;}
+.hero h1{font-size:clamp(40px,6vw,72px);color:var(--gold);margin-bottom:20px;}
+.hero p{font-size:18px;color:var(--mut);max-width:700px;margin:0 auto;}
+
+/* HISTORY */
+.story-section{padding:80px 0 140px;}
+.grid-2{display:grid;grid-template-columns:1.2fr 1fr;gap:80px;align-items:center;}
+.story-img{border-radius:24px;overflow:hidden;border:1px solid var(--line);position:relative;box-shadow:0 30px 60px rgba(0,0,0,0.6);}
+.story-img img{width:100%;height:100%;object-fit:cover;display:block;}
+.story-text h2{font-size:48px;color:var(--gold);margin-bottom:30px;}
+.story-text p{font-size:17px;color:var(--mut);margin-bottom:24px;line-height:2;}
+
+/* FOUNDER */
+.founder-section{padding:140px 0 200px;background:linear-gradient(180deg, rgba(8,8,10,1) 0%, rgba(15,13,10,1) 100%);border-top:1px solid var(--line);}
+.founder-grid{display:flex;flex-direction:column;gap:50px;align-items:center;text-align:center;}
+
+/* SMOKE SPREAD ANIMATION */
+.founder-img{
+  width: 380px;
+  height: 500px;
+  border-radius: 16px;
+  overflow: hidden;
+  margin: 0 auto;
+  border: none;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.8);
+  opacity: 0;
+  filter: blur(25px);
+  transform: scale(1.1);
+  transition: opacity 1.8s cubic-bezier(0.2, 0.8, 0.2, 1), filter 1.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.founder-img.visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+.founder-img img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 15%;
+  display: block;
+}
+.founder-text{max-width:800px;}
+.founder-name{font-family:'Pinyon Script', cursive; font-size:96px; color:var(--gold); margin-bottom:0; font-weight:400; line-height:1;}
+.founder-text span{display:inline-block;color:var(--gold-light);font-weight:700;text-transform:uppercase;letter-spacing:0.2em;font-size:14px;margin-bottom:40px;border-bottom:1px solid var(--line);padding-bottom:12px; margin-top:10px;}
+.founder-text blockquote{margin:0;font-family:var(--hd);font-size:36px;color:#fff;line-height:1.4;font-style:italic;}
+.founder-text blockquote::before{content:"“";color:var(--gold);font-size:80px;line-height:0;display:block;margin-bottom:30px;}
+.founder-text blockquote::after{content:"”";color:var(--gold);font-size:80px;line-height:0;display:block;margin-top:50px;}
+
+@media(max-width:960px){
+  .grid-2{grid-template-columns:1fr;}
+  .founder-img{width:100%;max-width:380px;height:450px;}
+}
+@media(max-width:860px){
+  .links{display:none;}
+}
+
+/* MOBILE PERFORMANCE AND RESPONSIVENESS */
+html, body { overflow-x: hidden; width: 100%; touch-action: pan-y; }
+img { max-width: 100%; }
+#frame-canvas { transform: translateZ(0); will-change: transform; backface-visibility: hidden; }
+nav { will-change: transform, background; }
+.card { will-change: transform; }
+
+@media (max-width: 768px) {
+  section { padding: 60px 0 !important; }
+  header.hero { padding: 120px 0 60px !important; }
+  h1 { font-size: clamp(32px, 9vw, 48px) !important; line-height: 1.15; }
+  h2 { font-size: clamp(28px, 7vw, 36px) !important; line-height: 1.2; }
+  .grid-2 { grid-template-columns: 1fr !important; gap: 40px !important; display: flex; flex-direction: column; }
+  .footer-grid { grid-template-columns: 1fr !important; gap: 30px; display: flex; flex-direction: column; }
+  .story-img { height: 300px; width: 100%; border-radius: 16px; }
+  .founder-grid { gap: 30px; display: flex; flex-direction: column; }
+  .founder-img { width: 100% !important; max-width: 320px; height: 420px !important; }
+  .modal-content { max-height: 85vh; border-radius: 16px; display: flex; flex-direction: column; overflow-y: auto; }
+  .modal-img { min-height: 250px; }
+  .modal-info { padding: 30px 20px; }
+  .card-img { height: 220px; }
+  .tabs { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .tabs button { padding: 8px 16px; font-size: 13px; }
+  .ct.glass-box { display: flex; flex-direction: column; padding: 30px !important; }
+  /* Reduce blur overhead on mobile */
+  nav.glass { backdrop-filter: blur(8px) saturate(1.2); }
+  .modal-overlay { backdrop-filter: blur(4px); }
+}
+
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a href="aurelian.html" class="logo">Aurelian</a>
+  <div class="links">
+    <a href="aurelian.html">Home</a>
+    <a href="about.html" style="color:var(--gold);">About Us</a>
+    <a href="projects.html">Projects</a>
+    <a href="aurelian.html#contact" class="btn">Book a Visit</a>
+  </div>
+</div></nav>
+
+<header class="hero"><div class="wrap">
+  <h1>Our Legacy</h1>
+  <p>Crafting India's most distinguished luxury residences with an uncompromising commitment to quality, heritage, and architectural excellence.</p>
+</div></header>
+
+<section class="story-section"><div class="wrap">
+  <div class="grid-2">
+    <div class="story-text">
+      <h2>The Genesis <span style="font-size:32px;color:var(--mut)">(2009)</span></h2>
+      <p>Aurelian Estates was founded in 2009 in Bengaluru with a singular, unyielding vision: to construct homes that transcend generations. At a time when the real estate landscape was consumed by mass scale and rapid expansion, we consciously chose the path of absolute restraint.</p>
+      <p>Our very first project, <strong>Aurelian Genesis</strong>, was situated in the elite enclave of Sadashivanagar. It was a boutique collection of just four masterfully crafted villas. We poured everything into those four homes — sourcing the finest Italian marble, collaborating with master artisans, and obsessing over every millimeter of space and light.</p>
+      <p>Today, with a portfolio spanning the nation's most coveted zip codes, our philosophy remains exactly the same. We do not build to fill space; we build to define it.</p>
+    </div>
+    <div class="story-img">
+      <img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1000&q=80" alt="First Project Architecture">
+    </div>
+  </div>
+</div></section>
+
+<section class="founder-section"><div class="wrap">
+  <div class="founder-grid">
+    <div class="founder-img" id="founderImage">
+      <img src="founder.png" alt="Lucky Bodar, Founder">
+    </div>
+    <div class="founder-text">
+      <h2 class="founder-name">Lucky Bodar</h2>
+      <span>Founder & Managing Director</span>
+      <blockquote>
+        Luxury is not merely an assembly of expensive materials. True luxury is found in the abundance of space, the choreography of natural light, and the profound peace of mind that comes when a home is built with absolute integrity. We don't just hand over keys; we hand over a legacy.
+      </blockquote>
+    </div>
+  </div>
+</div></section>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.2 });
+    
+    observer.observe(document.getElementById('founderImage'));
+  });
+</script>
+</body>
+</html>
