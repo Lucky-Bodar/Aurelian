@@ -448,16 +448,21 @@ nav { will-change: transform, background; }
 <div class="chips" id="ch"><button>View properties</button><button>Book a site visit</button><button>Talk to an agent</button><button>Pricing</button></div>
 <form id="cf"><input id="ci" placeholder="Type your question..." autocomplete="off" aria-label="Message"><button>Send</button></form></div>
 
+
 <script>
-
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    const s = document.getElementById('splash');
-    if(s) s.classList.add('hidden');
-  }, 2200);
+/* ===== SPLASH SCREEN DISMISSAL ===== */
+function dismissSplash() {
+  const s = document.getElementById('splash');
+  if (s && !s.classList.contains('hidden')) {
+    s.classList.add('hidden');
+  }
+}
+setTimeout(dismissSplash, 1800);
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(dismissSplash, 1600);
 });
-/* ===== FRAME SEQUENCE SCROLL ENGINE ===== */
 
+/* ===== FRAME SEQUENCE SCROLL ENGINE ===== */
 (function(){
   const TOTAL=192, canvas=document.getElementById('frame-canvas'), ctx=canvas.getContext('2d');
   const preBar=document.getElementById('pre-bar'), prePct=document.getElementById('pre-pct'), preEl=document.getElementById('pre');
@@ -480,7 +485,18 @@ window.addEventListener('load', () => {
   function draw(idx){
     idx=Math.max(0,Math.min(TOTAL-1,idx));
     if(idx===lastDrawn) return;
-    const img=images[idx]; if(!img||!img.complete) return;
+    let img=images[idx];
+    if(!img||!img.complete){
+      for(let offset=1; offset<TOTAL; offset++){
+        if(idx-offset>=0 && images[idx-offset] && images[idx-offset].complete){
+          img=images[idx-offset]; break;
+        }
+        if(idx+offset<TOTAL && images[idx+offset] && images[idx+offset].complete){
+          img=images[idx+offset]; break;
+        }
+      }
+    }
+    if(!img||!img.complete) return;
     ctx.clearRect(0,0,cachedCw,cachedCh);
     ctx.drawImage(img,(cachedCw-cachedDw)/2,(cachedCh-cachedDh)/2,cachedDw,cachedDh);
     lastDrawn=idx;
@@ -507,8 +523,21 @@ window.addEventListener('load', () => {
 
   function pad(n){return String(n).padStart(6,'0')}
 
+  function startExperience(){
+    if(ready) return;
+    ready=true;
+    if(preEl) preEl.classList.add('go');
+    document.body.classList.add('ready');
+    draw(0);
+    onScroll();
+    animate();
+  }
+
+  // Safety fallback: Never trap the user in a loading screen!
+  setTimeout(startExperience, 1000);
+
   function load(){
-    const C=10; let next=0;
+    const C=12; let next=0;
     function go(){
       if(next>=TOTAL) return;
       const i=next++;
@@ -516,11 +545,10 @@ window.addEventListener('load', () => {
       img.onload=img.onerror=function(){
         images[i]=img; loaded++;
         const pct=Math.round(loaded/TOTAL*100);
-        preBar.style.width=pct+'%'; prePct.textContent=pct+'% Loaded';
-        if(loaded===TOTAL){
-          ready=true; current=0; target=0; draw(0); onScroll();
-          setTimeout(()=>{preEl.classList.add('go');document.body.classList.add('ready')},300);
-          animate();
+        if(preBar) preBar.style.width=pct+'%';
+        if(prePct) prePct.textContent=pct+'% Loaded';
+        if(i===0 || loaded>=1){
+          startExperience();
         }
         go();
       };
@@ -529,9 +557,11 @@ window.addEventListener('load', () => {
     for(let c=0;c<C;c++) go();
   }
 
-  addEventListener('resize',resize); addEventListener('scroll',onScroll,{passive:true});
+  addEventListener('resize',resize);
+  addEventListener('scroll',onScroll,{passive:true});
   resize(); load();
 })();
+
 
 const $=s=>document.querySelector(s);
 
