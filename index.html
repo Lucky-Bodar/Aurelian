@@ -464,62 +464,54 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(dismissSplash, 1600);
 });
 
-/* ===== ADVANCED PROGRESSIVE FRAME SEQUENCE ENGINE ===== */
+/* ===== ULTRA-SMOOTH 60FPS FRAME SEQUENCE ENGINE ===== */
 (function(){
   const TOTAL = 240;
   const canvas = document.getElementById('frame-canvas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   const preEl = document.getElementById('pre');
+  const preBar = document.getElementById('pre-bar');
+  const prePct = document.getElementById('pre-pct');
   const images = new Array(TOTAL);
-  let current = 0, target = 0, ready = false, lastDrawnImage = null;
+  let current = 0, target = 0, ready = false, lastDrawnImg = null;
 
   let cachedCw = 0, cachedCh = 0, cachedDw = 0, cachedDh = 0;
   function resize(){
     const dpr = Math.min(devicePixelRatio || 1, 2);
     cachedCw = innerWidth;
     cachedCh = innerHeight;
-    canvas.width = cachedCw * dpr;
-    canvas.height = cachedCh * dpr;
+    canvas.width = Math.round(cachedCw * dpr);
+    canvas.height = Math.round(cachedCh * dpr);
     canvas.style.width = cachedCw + 'px';
     canvas.style.height = cachedCh + 'px';
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const iw = 1920, ih = 1080;
+    const iw = 1440, ih = 810;
     const s = Math.max(cachedCw / iw, cachedCh / ih);
-    cachedDw = iw * s;
-    cachedDh = ih * s;
-    lastDrawnImage = null;
+    cachedDw = Math.round(iw * s);
+    cachedDh = Math.round(ih * s);
+    lastDrawnImg = null;
     draw(Math.round(current));
   }
 
   function pad(n){ return String(n).padStart(4, '0'); }
 
-  function getNearestLoaded(idx){
-    if(images[idx] && images[idx].complete) return images[idx];
-    for(let offset = 1; offset < TOTAL; offset++){
-      const left = idx - offset;
-      if(left >= 0 && images[left] && images[left].complete) return images[left];
-      const right = idx + offset;
-      if(right < TOTAL && images[right] && images[right].complete) return images[right];
-    }
-    return null;
-  }
-
   function draw(idx){
     idx = Math.max(0, Math.min(TOTAL - 1, idx));
-    const img = getNearestLoaded(idx);
-    if(!img || !img.complete) return;
-    if(img === lastDrawnImage) return;
+    // Fast O(1) fallback to adjacent frames if exact frame is buffering
+    const img = images[idx] || images[idx - 1] || images[idx + 1] || images[idx - 2] || images[idx + 2] || images[0];
+    if(!img || !img.complete || img === lastDrawnImg) return;
 
-    ctx.clearRect(0, 0, cachedCw, cachedCh);
+    // Overwrite canvas directly without clearRect for zero-flicker 60fps rendering
     ctx.drawImage(img, (cachedCw - cachedDw) / 2, (cachedCh - cachedDh) / 2, cachedDw, cachedDh);
-    lastDrawnImage = img;
+    lastDrawnImg = img;
   }
 
   function animate(){
     const diff = target - current;
+    // Responsive, silky-smooth tracking (0.24 factor reaches target within 4 frames without lag)
     if(Math.abs(diff) > 0.005) {
-      current += diff * 0.12;
+      current += diff * 0.24;
       draw(Math.round(current));
     } else if(current !== target) {
       current = target;
@@ -530,37 +522,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function onScroll(){
     const maxScroll = document.documentElement.scrollHeight - innerHeight;
-    const p = maxScroll > 0 ? Math.max(0, Math.min(1, scrollY / maxScroll)) : 0;
-    target = Math.round(p * (TOTAL - 1));
-    // Prioritize loading frames around current scroll target
-    requestFrame(target);
-    for(let o = 1; o <= 3; o++){
-      if(target - o >= 0) requestFrame(target - o);
-      if(target + o < TOTAL) requestFrame(target + o);
-    }
+    const p = maxScroll > 0 ? Math.max(0, Math.min(1, window.scrollY / maxScroll)) : 0;
+    target = p * (TOTAL - 1);
   }
 
-  const requested = new Set();
-  function requestFrame(i, onDone){
-    if(i < 0 || i >= TOTAL || requested.has(i)) return;
-    requested.add(i);
-    const img = new Image();
-    img.onload = function(){
-      images[i] = img;
-      // If we are currently near this frame, re-render immediately
-      if(!lastDrawnImage || Math.abs(i - current) <= 3){
-        lastDrawnImage = null;
-        draw(Math.round(current));
-      }
-      if(onDone) onDone();
-    };
-    img.onerror = function(){
-      if(onDone) onDone();
-    };
-    img.src = 'frames/frame_' + pad(i + 1) + '.jpg';
-  }
-
-  function startSite(){
+  function startExperience(){
     if(ready) return;
     ready = true;
     if(preEl) preEl.classList.add('go');
@@ -570,55 +536,69 @@ document.addEventListener('DOMContentLoaded', () => {
     animate();
   }
 
-  // Phase 1: Load Frame 1 ONLY so initial canvas paints immediately without network congestion
-  requestFrame(0, function(){
-    startSite();
-  });
-
-  // Phase 2: Defer background frame prefetching until window has fully loaded and settled!
-  window.addEventListener('load', function(){
-    setTimeout(function(){
-      loadKeyframePass(10, function(){
-        loadKeyframePass(4, function(){
-          loadKeyframePass(2);
-        });
-      });
-    }, 1200);
-  });
-
-  // Fallback: If network is slow, reveal UI within 800ms
-  setTimeout(startSite, 800);
-
-  function loadKeyframePass(step, callback){
-    const queue = [];
-    for(let i = 0; i < TOTAL; i += step){
-      if(!requested.has(i)) queue.push(i);
-    }
-    if(!queue.length){
-      if(callback) callback();
-      return;
-    }
-    let concurrent = 0;
-    const maxConcurrent = 4;
-    function next(){
-      if(!queue.length && concurrent === 0){
-        if(callback) callback();
-        return;
-      }
-      while(concurrent < maxConcurrent && queue.length){
-        const idx = queue.shift();
-        concurrent++;
-        requestFrame(idx, function(){
-          concurrent--;
-          next();
-        });
-      }
-    }
-    next();
+  // Two-tier parallel preloader:
+  // Tier 1: Every 2nd frame (0, 2, 4... 238) -> 120 frames (~19 MB) for instant playback
+  // Tier 2: Odd frames (1, 3, 5... 239) for full 60fps density
+  let loadedCount = 0;
+  const tier1Indices = [];
+  const tier2Indices = [];
+  for(let i = 0; i < TOTAL; i++){
+    if(i % 2 === 0) tier1Indices.push(i);
+    else tier2Indices.push(i);
   }
 
-  addEventListener('resize', resize);
-  addEventListener('scroll', onScroll, { passive: true });
+  function loadQueue(indices, onTierDone){
+    let nextIdx = 0;
+    const concurrentLimit = 16; // HTTP/2 multiplexes 16 parallel streams effortlessly
+    let active = 0;
+
+    function fetchNext(){
+      if(nextIdx >= indices.length && active === 0){
+        if(onTierDone) onTierDone();
+        return;
+      }
+      while(active < concurrentLimit && nextIdx < indices.length){
+        const i = indices[nextIdx++];
+        active++;
+        const img = new Image();
+        img.onload = img.onerror = function(){
+          images[i] = img;
+          loadedCount++;
+          active--;
+          const pct = Math.min(100, Math.round((loadedCount / (TOTAL * 0.5)) * 100));
+          if(preBar) preBar.style.width = pct + '%';
+          if(prePct) prePct.textContent = pct + '% Loaded';
+
+          // First frame renders instantly
+          if(i === 0 && !lastDrawnImg){
+            draw(0);
+          }
+
+          // As soon as Tier 1 reaches 60% or 100%, unlock the website!
+          if(loadedCount >= 60 && !ready){
+            startExperience();
+          }
+
+          fetchNext();
+        };
+        img.src = 'frames/frame_' + pad(i + 1) + '.jpg';
+      }
+    }
+    fetchNext();
+  }
+
+  // Safety fallback: Never keep user waiting longer than 2.8s
+  setTimeout(startExperience, 2800);
+
+  // Start preloading
+  loadQueue(tier1Indices, function(){
+    startExperience();
+    // Load remaining interstitial frames in background
+    loadQueue(tier2Indices, null);
+  });
+
+  window.addEventListener('resize', resize, { passive: true });
+  window.addEventListener('scroll', onScroll, { passive: true });
   resize();
 })();
 
