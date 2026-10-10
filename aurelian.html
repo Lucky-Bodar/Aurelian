@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ===== ADVANCED PROGRESSIVE FRAME SEQUENCE ENGINE ===== */
 (function(){
-  const TOTAL = 192;
+  const TOTAL = 240;
   const canvas = document.getElementById('frame-canvas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -492,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
     draw(Math.round(current));
   }
 
-  function pad(n){ return String(n).padStart(6, '0'); }
+  function pad(n){ return String(n).padStart(4, '0'); }
 
   function getNearestLoaded(idx){
     if(images[idx] && images[idx].complete) return images[idx];
@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function animate(){
     const diff = target - current;
-    if(Math.abs(diff) > 0.01) {
+    if(Math.abs(diff) > 0.005) {
       current += diff * 0.12;
       draw(Math.round(current));
     } else if(current !== target) {
@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const img = new Image();
     img.onload = function(){
       images[i] = img;
-      // If we are currently near this frame, re-render
+      // If we are currently near this frame, re-render immediately
       if(!lastDrawnImage || Math.abs(i - current) <= 3){
         lastDrawnImage = null;
         draw(Math.round(current));
@@ -557,7 +557,7 @@ document.addEventListener('DOMContentLoaded', () => {
     img.onerror = function(){
       if(onDone) onDone();
     };
-    img.src = 'frame/frame_' + pad(i + 1) + '.png';
+    img.src = 'frames/frame_' + pad(i + 1) + '.jpg';
   }
 
   function startSite(){
@@ -576,10 +576,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Phase 2: Defer background frame prefetching until window has fully loaded and settled!
-  // This allows the browser tab to immediately stop spinning and show the golden favicon.
   window.addEventListener('load', function(){
     setTimeout(function(){
-      loadKeyframePass(8, function(){
+      loadKeyframePass(10, function(){
         loadKeyframePass(4, function(){
           loadKeyframePass(2);
         });
@@ -600,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     let concurrent = 0;
-    const maxConcurrent = 4; // Gentle concurrency to avoid choking network
+    const maxConcurrent = 4;
     function next(){
       if(!queue.length && concurrent === 0){
         if(callback) callback();
